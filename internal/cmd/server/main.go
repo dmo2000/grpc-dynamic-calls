@@ -18,7 +18,7 @@
 
 // Copied from https://github.com/grpc/grpc-go/blob/master/examples/helloworld/greeter_server/main.go
 // Package main implements a server for Greeter service.
-package server
+package main
 
 import (
 	"context"
@@ -27,8 +27,9 @@ import (
 	"log"
 	"net"
 
+	"github.com/dmo2000/grpc-server-reflection/api/proto/helloworld"
+
 	"google.golang.org/grpc"
-	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -38,13 +39,13 @@ var (
 
 // server is used to implement helloworld.GreeterServer.
 type server struct {
-	pb.UnimplementedGreeterServer
+	helloworld.UnimplementedGreeterServer
 }
 
 // SayHello implements helloworld.GreeterServer
-func (s *server) SayHello(_ context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+func (s *server) SayHello(_ context.Context, in *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
 	log.Printf("Received: %v", in.GetName())
-	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
+	return &helloworld.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
 func main() {
@@ -55,7 +56,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterGreeterServer(s, &server{})
+	helloworld.RegisterGreeterServer(s, &server{})
 	if enableReflection {
 		reflection.Register(s)
 	}

@@ -2,17 +2,21 @@
 deps:
 	@echo ">> Installing Go dependencies..."
 	@go mod download
+#   client side compiler
 	@go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+#   server side compiler
+	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
 #Install protobuf compiler
 	brew install protobuf
 
 run-server:
 	@echo ">> Running server..."
-	@go run cmd/server/main.go
+	@go run internal/cmd/server/main.go
 
 run-client-reflection:
 	@echo ">> Running client reflection..."
-	@go run cmd/client_reflection/main.go
+	@go run internal/cmd/client_server_reflection/main.go
 
 fmt:
 	@echo ">> Formatting code..."
@@ -28,5 +32,6 @@ tidy:
 
 proto:
 	@echo ">> Generating gRPC code..."
-	@protoc --go_out=. --go_opt=paths=. --go-grpc_out=. --go-grpc_opt=paths=source_relative api/proto/helloworld.proto
-#	@protoc --go_out=. --go-grpc_out=. -I=api/proto api/proto/*.proto
+	@protoc -I=api/proto/helloworld --go_out=. --go-grpc_out=. api/proto/helloworld/helloworld.proto
+
+#	@protoc --go_out=paths=source_relative:. api/proto/helloworld.proto

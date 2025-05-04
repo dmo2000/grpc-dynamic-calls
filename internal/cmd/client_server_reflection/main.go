@@ -1,4 +1,4 @@
-package client_reflection
+package main
 
 import (
 	"context"
@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/fullstorydev/grpcurl"
-	"github.com/fullstorydev/grpcurl/formatter"
-	"github.com/fullstorydev/grpcurl/grpcreflect"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	reflectionpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
@@ -18,9 +16,9 @@ import (
 )
 
 func main() {
-	serverAddr := "localhost:50051" // Change to your server address
+	serverAddr := "localhost:50051"                 // Change to your server address
 	methodFullName := "helloworld.Greeter/SayHello" // Example full method name
-	jsonRequest := `{ "name": "World" }` // Example request payload
+	jsonRequest := `{ "name": "World" }`            // Example request payload
 
 	// Dial server
 	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
@@ -30,7 +28,7 @@ func main() {
 	defer conn.Close()
 
 	// Create reflection client
-	refClient := grpcreflect.NewClient(context.Background(), reflectionpb.NewServerReflectionClient(conn))
+	refClient := grpcurl.NewClient(context.Background(), reflectionpb.NewServerReflectionClient(conn))
 	defer refClient.Reset()
 
 	// Use grpcurl to get the method descriptor
@@ -51,7 +49,7 @@ func main() {
 	}
 
 	// Prepare formatter for the response
-	f, err := formatter.NewFormatter(formatter.FormatOptions{
+	f, err := grpcurl.NewFormatter(formatter.FormatOptions{
 		EmitJSONDefaultFields: true,
 		EmitJSONNames:         true,
 		Indent:                "  ",
@@ -62,9 +60,9 @@ func main() {
 
 	// Invoke the gRPC method
 	stub := grpcurl.StubInvoker{
-		Conn:        conn,
-		Formatter:   f,
-		DescSource:  descSource,
+		Conn:       conn,
+		Formatter:  f,
+		DescSource: descSource,
 	}
 	respHandler := func(m proto.Message) error {
 		str, err := f(m)
