@@ -6,7 +6,6 @@ import (
 
 	"github.com/fullstorydev/grpcurl"
 	"github.com/golang/protobuf/proto"
-	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 
@@ -31,24 +30,24 @@ func main() {
 
 	// Use grpcurl to get the method descriptor
 	descriptorSource := grpcurl.DescriptorSourceFromServer(context.Background(), refClient)
-	rf, err := descriptorSource.FindSymbol(methodFullName)
+	serviceList, err := descriptorSource.ListServices()
 	if err != nil {
-		log.Fatalf("Method not found via reflection: %v", err)
+		log.Fatalf("Error while listing services", err)
 	}
-	methodDesc, ok := rf.(*desc.MethodDescriptor)
-	if !ok {
-		log.Fatalf("Symbol is not a method")
+	log.Println("Following list of services are available")
+	log.Println(serviceList)
+	methodList, err := descriptorSource.AllExtensionsForType("Method")
+	if err != nil {
+		log.Fatalf("Error while listing methods", err)
 	}
+	log.Println("Following list of methods are available")
+	log.Println(methodList)
 
 	// Parse JSON request to dynamic message
 
 	dynamicRequestSupplier := func(m proto.Message) error {
-		jsonMessage := dynamic.NewMessage(methodDesc.GetInputType())
+		jsonMessage := m.(*dynamic.Message) // dynamic.NewMessage(methodDesc.GetInputType())
 		err := jsonMessage.UnmarshalJSON([]byte(jsonRequest))
-		if err != nil {
-			return err
-		}
-		err = jsonMessage.ConvertTo(m)
 		if err != nil {
 			return err
 		}
@@ -57,8 +56,9 @@ func main() {
 
 	respHandler := &grpcurl.DefaultEventHandler{}
 
-	err = grpcurl.InvokeRPC(context.Background(), descriptorSource, nil, methodFullName, []string{}, respHandler, dynamicRequestSupplier)
+	err = grpcurl.InvokeRPC(context.Background(), descriptorSource, conn, methodFullName, []string{}, respHandler, dynamicRequestSupplier)
 	if err != nil {
 		log.Fatalf("RPC call failed: %v", err)
 	}
+	log.Printf("Response received #%d", respHandler.NumResponses)
 }
