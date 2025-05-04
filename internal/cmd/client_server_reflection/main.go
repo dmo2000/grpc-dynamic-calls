@@ -3,22 +3,25 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/fullstorydev/grpcurl"
-	"github.com/golang/protobuf/proto"
-	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
+
+	// inputs
 	serverAddr := "localhost:50051"                 // Change to your server address
 	methodFullName := "helloworld.Greeter/SayHello" // Example full method name
 	jsonRequest := `{ "name": "World" }`            // Example request payload
 
 	// Dial server
-	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
+	conn, err := grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to dial server: %v", err)
 	}
@@ -30,35 +33,24 @@ func main() {
 
 	// Use grpcurl to get the method descriptor
 	descriptorSource := grpcurl.DescriptorSourceFromServer(context.Background(), refClient)
-	serviceList, err := descriptorSource.ListServices()
+
+	// Prepare formatter for the response
+	options := grpcurl.FormatOptions{EmitJSONDefaultFields: true}
+	jsonRequestReader := strings.NewReader(jsonRequest)
+	rf, formatter, err := grpcurl.RequestParserAndFormatter(grpcurl.Format("json"), descriptorSource, jsonRequestReader, options)
 	if err != nil {
-		log.Fatalf("Error while listing services", err)
+		log.Fatalf("Failed to construct request parser and formatter: %v", err)
 	}
-	log.Println("Following list of services are available")
-	log.Println(serviceList)
-	methodList, err := descriptorSource.AllExtensionsForType("Method")
-	if err != nil {
-		log.Fatalf("Error while listing methods", err)
-	}
-	log.Println("Following list of methods are available")
-	log.Println(methodList)
-
-	// Parse JSON request to dynamic message
-
-	dynamicRequestSupplier := func(m proto.Message) error {
-		jsonMessage := m.(*dynamic.Message) // dynamic.NewMessage(methodDesc.GetInputType())
-		err := jsonMessage.UnmarshalJSON([]byte(jsonRequest))
-		if err != nil {
-			return err
-		}
-		return nil
+	eventHandler := &grpcurl.DefaultEventHandler{
+		Out:            os.Stdout,
+		Formatter:      formatter,
+		VerbosityLevel: 0,
 	}
 
-	respHandler := &grpcurl.DefaultEventHandler{}
+	headers := []string{}
 
-	err = grpcurl.InvokeRPC(context.Background(), descriptorSource, conn, methodFullName, []string{}, respHandler, dynamicRequestSupplier)
+	err = grpcurl.InvokeRPC(context.Background(), descriptorSource, conn, methodFullName, headers, eventHandler, rf.Next)
 	if err != nil {
 		log.Fatalf("RPC call failed: %v", err)
 	}
-	log.Printf("Response received #%d", respHandler.NumResponses)
 }
