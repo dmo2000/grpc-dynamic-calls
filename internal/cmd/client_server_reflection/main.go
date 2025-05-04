@@ -2,15 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
-	"strings"
 
 	"github.com/fullstorydev/grpcurl"
+	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
-	reflectionpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"github.com/jhump/protoreflect/grpcreflect"
 
 	"google.golang.org/grpc"
 )
@@ -28,12 +26,12 @@ func main() {
 	defer conn.Close()
 
 	// Create reflection client
-	refClient := grpcurl.NewClient(context.Background(), reflectionpb.NewServerReflectionClient(conn))
+	refClient := grpcreflect.NewClientAuto(context.Background(), conn)
 	defer refClient.Reset()
 
 	// Use grpcurl to get the method descriptor
-	descSource := grpcurl.DescriptorSourceFromServer(context.Background(), refClient)
-	rf, err := descSource.FindSymbol(methodFullName)
+	descriptorSource := grpcurl.DescriptorSourceFromServer(context.Background(), refClient)
+	rf, err := descriptorSource.FindSymbol(methodFullName)
 	if err != nil {
 		log.Fatalf("Method not found via reflection: %v", err)
 	}
@@ -43,37 +41,23 @@ func main() {
 	}
 
 	// Parse JSON request to dynamic message
-	reqMsg := dynamic.NewMessage(methodDesc.GetInputType())
-	if err := reqMsg.UnmarshalJSON([]byte(jsonRequest)); err != nil {
-		log.Fatalf("Invalid JSON input: %v", err)
-	}
 
-	// Prepare formatter for the response
-	f, err := grpcurl.NewFormatter(formatter.FormatOptions{
-		EmitJSONDefaultFields: true,
-		EmitJSONNames:         true,
-		Indent:                "  ",
-	}, nil)
-	if err != nil {
-		log.Fatalf("Failed to create formatter: %v", err)
-	}
-
-	// Invoke the gRPC method
-	stub := grpcurl.StubInvoker{
-		Conn:       conn,
-		Formatter:  f,
-		DescSource: descSource,
-	}
-	respHandler := func(m proto.Message) error {
-		str, err := f(m)
+	dynamicRequestSupplier := func(m proto.Message) error {
+		jsonMessage := dynamic.NewMessage(methodDesc.GetInputType())
+		err := jsonMessage.UnmarshalJSON([]byte(jsonRequest))
 		if err != nil {
 			return err
 		}
-		fmt.Println("Response:", str)
+		err = jsonMessage.ConvertTo(m)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 
-	err = stub.InvokeRpc(context.Background(), methodDesc, []string{}, []proto.Message{reqMsg}, respHandler)
+	respHandler := &grpcurl.DefaultEventHandler{}
+
+	err = grpcurl.InvokeRPC(context.Background(), descriptorSource, nil, methodFullName, []string{}, respHandler, dynamicRequestSupplier)
 	if err != nil {
 		log.Fatalf("RPC call failed: %v", err)
 	}

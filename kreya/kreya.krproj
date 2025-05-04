@@ -1,6 +1,18 @@
 {
   "id": "96c7411d-aeab-4550-800f-3f15caaa00e8",
-  "importStreams": [],
+  "importStreams": [
+    {
+      "id": "772ccda0-1efb-42da-b96d-8134a4790a59",
+      "name": "hello-world",
+      "importerName": "GrpcServerReflection",
+      "createMissingOperations": true,
+      "options": {
+        "endpoint": "http://localhost:50051",
+        "disableServerCertificateValidation": true,
+        "disableCookies": false
+      }
+    }
+  ],
   "authConfigs": [],
   "certificates": []
 }
