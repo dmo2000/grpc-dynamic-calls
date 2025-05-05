@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/fullstorydev/grpcurl"
@@ -16,23 +16,26 @@ import (
 func main() {
 
 	// inputs
-	serverAddr := "localhost:50051"                 // Change to your server address
-	methodFullName := "helloworld.Greeter/SayHello" // Example full method name
-	jsonRequest := `{ "name": "World" }`            // Example request payload
+	serverAddr := "localhost:50051"
+	methodFullName := "helloworld.Greeter/SayHello"
+	jsonRequest := `{ "name": "goodbye, hello goodbye, you say stop and I say go go..." }`
 
-	// Dial server
-	conn, err := grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// output
+	var output bytes.Buffer
+
+	// Create grpc channel
+	grpcChannel, err := grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to dial server: %v", err)
 	}
-	defer conn.Close()
+	defer grpcChannel.Close()
 
 	// Create reflection client
-	refClient := grpcreflect.NewClientAuto(context.Background(), conn)
-	defer refClient.Reset()
+	reflectionClient := grpcreflect.NewClientAuto(context.Background(), grpcChannel)
+	defer reflectionClient.Reset()
 
 	// Use grpcurl to get the method descriptor
-	descriptorSource := grpcurl.DescriptorSourceFromServer(context.Background(), refClient)
+	descriptorSource := grpcurl.DescriptorSourceFromServer(context.Background(), reflectionClient)
 
 	// Prepare formatter for the response
 	options := grpcurl.FormatOptions{EmitJSONDefaultFields: true}
@@ -42,15 +45,17 @@ func main() {
 		log.Fatalf("Failed to construct request parser and formatter: %v", err)
 	}
 	eventHandler := &grpcurl.DefaultEventHandler{
-		Out:            os.Stdout,
+		Out:            &output,
 		Formatter:      formatter,
 		VerbosityLevel: 0,
 	}
 
 	headers := []string{}
 
-	err = grpcurl.InvokeRPC(context.Background(), descriptorSource, conn, methodFullName, headers, eventHandler, rf.Next)
+	err = grpcurl.InvokeRPC(context.Background(), descriptorSource, grpcChannel, methodFullName, headers, eventHandler, rf.Next)
 	if err != nil {
 		log.Fatalf("RPC call failed: %v", err)
 	}
+	log.Println("Received output:")
+	log.Print(output.String())
 }

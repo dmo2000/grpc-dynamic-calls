@@ -10,15 +10,13 @@ deps:
 #Install protobuf compiler
 	brew install protobuf
 
-.PHONY: run-server
 run-server:
 	@echo ">> Running server..."
 	@go run internal/cmd/server/main.go
 
-.PHONY: run-client-reflection
-run-client-reflection:
-	@echo ">> Running client reflection..."
-	@go run internal/cmd/client_server_reflection/main.go
+run-server-reflection-call:
+	@echo ">> Calling method with server reflection..."
+	@go run internal/cmd/server_reflection_call/main.go
 
 fmt:
 	@echo ">> Formatting code..."
