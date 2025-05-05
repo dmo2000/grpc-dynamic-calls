@@ -18,6 +18,10 @@ run-server-reflection-call:
 	@echo ">> Calling method with server reflection..."
 	@go run internal/cmd/server_reflection_call/main.go
 
+run-server-call-with-local-proto:
+	@echo ">> Calling method based on local proto file..."
+	@go run internal/cmd/local_proto_call/main.go
+
 fmt:
 	@echo ">> Formatting code..."
 	@go fmt ./...
