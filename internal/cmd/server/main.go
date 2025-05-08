@@ -27,7 +27,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/dmo2000/grpc-server-reflection/api/proto/helloworld"
+	"github.com/dmo2000/grpc-dynamic-calls/api/proto/helloworld"
+	"github.com/dmo2000/grpc-dynamic-calls/internal/common"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -55,7 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc.UnaryInterceptor(common.LogUnaryCall), grpc.StreamInterceptor(common.LogStreamCall))
 	helloworld.RegisterGreeterServer(s, &server{})
 	if enableReflection {
 		reflection.Register(s)

@@ -1,4 +1,4 @@
-module github.com/dmo2000/grpc-server-reflection
+module github.com/dmo2000/grpc-dynamic-calls
 
 go 1.23.0
 
