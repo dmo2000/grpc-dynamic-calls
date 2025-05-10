@@ -7,6 +7,7 @@ deps:
 #   server side compiler
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
+install-protoc:
 #Install protobuf compiler in MAC. 
 # To install in another machine follow the instructions at
 # https://protobuf.dev/installation/    
@@ -22,7 +23,7 @@ run-server-reflection-call:
 
 run-server-call-with-local-proto:
 	@echo ">> Calling method based on local proto file..."
-	@go run internal/cmd/local_proto_call/main.go
+	cd internal/cmd/local_proto_call && go run ./main.go
 
 fmt:
 	@echo ">> Formatting code..."
