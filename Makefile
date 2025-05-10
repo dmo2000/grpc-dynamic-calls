@@ -7,7 +7,9 @@ deps:
 #   server side compiler
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
-#Install protobuf compiler
+#Install protobuf compiler in MAC. 
+# To install in another machine follow the instructions at
+# https://protobuf.dev/installation/    
 	brew install protobuf
 
 run-server:
